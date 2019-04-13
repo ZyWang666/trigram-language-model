@@ -168,7 +168,7 @@ def print_table(table, row_names, col_names, latex_file = None):
 						print(row_format.format(row_name, *row))
 
 if __name__ == "__main__":
-
+		"""
 		dnames = ["brown", "reuters", "gutenberg"]
 		datas = []
 		models = []
@@ -200,7 +200,10 @@ if __name__ == "__main__":
 		print("-------------------------------")
 		print("x test")
 		print_table(perp_test, dnames, dnames, "table-test.tex")
+		"""
 
+		print('\n')
+		print('\n')
 		print("--------------learning trigram-----------------")
 		# trigram
 		dnames = ["brown", "reuters", "gutenberg"]

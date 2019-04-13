@@ -92,78 +92,87 @@ class Unigram(LangModel):
 		return self.model.keys()
 
 class Trigram(LangModel):
-	def __init__(self, backoff = 0.000001):
+	def __init__(self):
 		self.one_word = dict()
 		self.two_words = dict()
 		self.three_words = dict()
-		self.lbackoff = log(backoff, 2)
+		self.rare_words = dict()
 
+	def fit_corpus(self, corpus):
+		#check for rare words
+		words_count = dict()
+		for s in corpus:
+			for w in s:
+				if w in words_count:
+					words_count[w] += 1
+				else:
+					words_count[w] = 1
+		print("finish words_count: ", len(words_count))
+		for w in words_count:
+			if words_count[w] == 1:
+				self.rare_words[w] = 1
+		print("finish rare words: ", len(self.rare_words))
+
+		"""Learn the language model for the whole corpus.
+		The corpus consists of a list of sentences."""
+		for s in corpus:
+			self.fit_sentence(s)
+		self.norm()
 
 	def fit_sentence(self, sentence):
-		f_prev = ''
-		s_prev = ''
+		f_prev = '*'
+		s_prev = '*'
 		comb = ''
 		for w in sentence:
-			if f_prev == '':
-				f_prev = w
-				self.words_count(1,f_prev)
-			elif s_prev == '':
-				s_prev = w
-				self.words_count(1,s_prev)
-				self.words_count(2,f_prev + ' ' + s_prev)
-			else:
-				self.words_count(1,w)
-				comb = s_prev + ' ' + w
-				self.words_count(2,comb)
-				comb = f_prev + ' ' + comb
-				self.words_count(3,comb)
-				f_prev = s_prev
-				s_prev = w
-
-		comb = 'END_OF_SENTENCE'
-		self.words_count(1,comb)
-		if s_prev != '':
-			comb = s_prev + ' ' + comb
+			if w in self.rare_words:
+				w = 'UNK'
+			self.words_count(1,w)
+			comb = f_prev + ' ' + s_prev
 			self.words_count(2,comb)
-		if f_prev != '':
-			comb = f_prev + ' ' + comb
-			if  s_prev != '':
-				self.words_count(3,comb)
-			elif s_prev == '':
-				self.words_count(2,comb)
-		else:
-			self.word_count(1,comb)
+			comb = comb + ' ' + w
+			self.words_count(3,comb)
+			f_prev = s_prev
+			s_prev = w
 
-
-	def norm(self):
-		"""Normalize and convert to log2-probs."""
-		tot = 0.0
-		for word in self.one_word:
-			tot += self.one_word[word]
-		ltot = log(tot, 2)
-		for word in self.one_word:
-			self.one_word[word] = log(self.one_word[word], 2) - ltot
-
+		w = 'END_OF_SENTENCE'
+		self.words_count(1,w)
+		comb = f_prev + ' ' + s_prev
+		self.words_count(2,comb)
+		comb = comb + ' ' + w
+		self.words_count(3,comb)
 		
 	def vocab(self):
 		return self.one_word
-
+	
 	def cond_logprob(self, word, previous):
-		if len(previous) <= 2:
-			if word in self.one_word:
-				return self.one_word[word]
-			else:
-				return self.lbackoff
-		else:
-			numerator = 1.0
-			denumerator = len(self.one_word) + 0.0
-			comb = previous[len(previous)-2] + ' ' + previous[len(previous)-1]
-			if comb in self.two_words:
-				denumerator += self.two_words[comb]
-			comb = comb + ' ' + word
-			if comb in self.three_words:
-				numerator += self.three_words[comb]
-			return log((numerator / denumerator),2)
+		f_prev = '*'
+		s_prev = '*'
+		if word not in self.one_word:
+			word = 'UNK'
+		if len(previous) == 1:
+			if previous[0] not in self.one_word:
+				previous[0] = 'UNK'
+			s_prev = previous[0]
+		elif len(previous) >= 2:
+			if previous[len(previous)-2] not in self.one_word:
+				previous[len(previous)-2] = 'UNK'
+			if previous[len(previous)-1] not in self.one_word:
+				previous[len(previous)-1] = 'UNK'
+
+			f_prev = previous[len(previous)-2]
+			s_prev = previous[len(previous)-1]
+		numerator = 1.0
+		denumerator = len(self.one_word) + 0.0
+		comb = f_prev + ' ' + s_prev
+		#print("2: ", comb)
+		if comb in self.two_words:
+			denumerator += self.two_words[comb]
+		comb = comb + ' ' + word
+		#print("3: ", comb)
+		if comb in self.three_words:
+			numerator += self.three_words[comb]
+		return log(numerator, 2) - log(denumerator, 2)
+	
 
 	def words_count(self, num, comb):
 		if num == 1:
@@ -181,4 +190,5 @@ class Trigram(LangModel):
 				self.three_words[comb] += 1
 			else:
 				self.three_words[comb] = 1
+
 
