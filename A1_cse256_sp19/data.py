@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import numpy as np
 import sys
 
-
+model = input("enter the model you want to run: ")
 # Python 3 backwards compatibility tricks
 if sys.version_info.major > 2:
 
@@ -145,6 +145,28 @@ def learn_trigram(data, verbose=True):
 				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
 		return trigram
 
+def learn_trigram_without_smoothing(data, verbose=True):
+		"""Learns a unigram model from data.train.
+
+		It also evaluates the model on data.dev and data.test, along with generating
+		some sample sentences from the model.
+		"""
+		from lm import TrigramNoSmoothing
+		trigram = TrigramNoSmoothing()
+		trigram.fit_corpus(data.train)
+		if verbose:
+				print("vocab:", len(trigram.vocab()))
+				# evaluate on train, test, and dev
+				print("train:", trigram.perplexity(data.train))
+				print("dev	:", trigram.perplexity(data.dev))
+				print("test :", trigram.perplexity(data.test))
+				from generator import Sampler
+				sampler = Sampler(trigram)
+				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence([])))
+				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
+		return trigram
+
+
 
 def print_table(table, row_names, col_names, latex_file = None):
 		"""Pretty prints the table given the table, and row and col names.
@@ -168,74 +190,109 @@ def print_table(table, row_names, col_names, latex_file = None):
 						print(row_format.format(row_name, *row))
 
 if __name__ == "__main__":
-		"""
-		dnames = ["brown", "reuters", "gutenberg"]
-		datas = []
-		models = []
-		# Learn the models for each of the domains, and evaluate it
-		for dname in dnames:
-				print("-----------------------")
-				print(dname)
-				data = read_texts("data/corpora.tar.gz", dname)
-				datas.append(data)
-				model = learn_unigram(data)
-				models.append(model)
-		# compute the perplexity of all pairs
-		n = len(dnames)
-		perp_dev = np.zeros((n,n))
-		perp_test = np.zeros((n,n))
-		perp_train = np.zeros((n,n))
-		for i in xrange(n):
-				for j in xrange(n):
-						perp_dev[i][j] = models[i].perplexity(datas[j].dev)
-						perp_test[i][j] = models[i].perplexity(datas[j].test)
-						perp_train[i][j] = models[i].perplexity(datas[j].train)
+		if model == 'unigram':
+			dnames = ["brown", "reuters", "gutenberg"]
+			datas = []
+			models = []
+			# Learn the models for each of the domains, and evaluate it
+			for dname in dnames:
+					print("-----------------------")
+					print(dname)
+					data = read_texts("data/corpora.tar.gz", dname)
+					datas.append(data)
+					model = learn_unigram(data)
+					models.append(model)
+			# compute the perplexity of all pairs
+			n = len(dnames)
+			perp_dev = np.zeros((n,n))
+			perp_test = np.zeros((n,n))
+			perp_train = np.zeros((n,n))
+			for i in xrange(n):
+					for j in xrange(n):
+							perp_dev[i][j] = models[i].perplexity(datas[j].dev)
+							perp_test[i][j] = models[i].perplexity(datas[j].test)
+							perp_train[i][j] = models[i].perplexity(datas[j].train)
 
-		print("-------------------------------")
-		print("x train")
-		print_table(perp_train, dnames, dnames, "table-train.tex")
-		print("-------------------------------")
-		print("x dev")
-		print_table(perp_dev, dnames, dnames, "table-dev.tex")
-		print("-------------------------------")
-		print("x test")
-		print_table(perp_test, dnames, dnames, "table-test.tex")
-		"""
+			print("-------------------------------")
+			print("x train")
+			print_table(perp_train, dnames, dnames, "table-train.tex")
+			print("-------------------------------")
+			print("x dev")
+			print_table(perp_dev, dnames, dnames, "table-dev.tex")
+			print("-------------------------------")
+			print("x test")
+			print_table(perp_test, dnames, dnames, "table-test.tex")
 
-		print('\n')
-		print('\n')
-		print("--------------learning trigram-----------------")
-		# trigram
-		dnames = ["brown", "reuters", "gutenberg"]
-		datas = []
-		models = []
-		# Learn the models for each of the domains, and evaluate it
-		for dname in dnames:
-				print("-----------------------")
-				print(dname)
-				data = read_texts("data/corpora.tar.gz", dname)
-				datas.append(data)
-				model = learn_trigram(data)
-				models.append(model)
-		# compute the perplexity of all pairs
-		n = len(dnames)
-		perp_dev = np.zeros((n,n))
-		perp_test = np.zeros((n,n))
-		perp_train = np.zeros((n,n))
-		for i in xrange(n):
-				for j in xrange(n):
-						perp_dev[i][j] = models[i].perplexity(datas[j].dev)
-						perp_test[i][j] = models[i].perplexity(datas[j].test)
-						perp_train[i][j] = models[i].perplexity(datas[j].train)
+		elif model == 'trigram with smoothing':
+			print('\n')
+			print('\n')
+			print("--------------learning trigram with smoothing--------------")
+			# trigram
+			dnames = ["brown", "reuters", "gutenberg"]
+			datas = []
+			models = []
+			# Learn the models for each of the domains, and evaluate it
+			for dname in dnames:
+					print("-----------------------")
+					print(dname)
+					data = read_texts("data/corpora.tar.gz", dname)
+					datas.append(data)
+					model = learn_trigram(data)
+					models.append(model)
+			# compute the perplexity of all pairs
+			n = len(dnames)
+			perp_dev = np.zeros((n,n))
+			perp_test = np.zeros((n,n))
+			perp_train = np.zeros((n,n))
+			for i in xrange(n):
+					for j in xrange(n):
+							perp_dev[i][j] = models[i].perplexity(datas[j].dev)
+							perp_test[i][j] = models[i].perplexity(datas[j].test)
+							perp_train[i][j] = models[i].perplexity(datas[j].train)
 
-		print("-------------------------------")
-		print("x train")
-		print_table(perp_train, dnames, dnames, "table-train.tex")
-		print("-------------------------------")
-		print("x dev")
-		print_table(perp_dev, dnames, dnames, "table-dev.tex")
-		print("-------------------------------")
-		print("x test")
-		print_table(perp_test, dnames, dnames, "table-test.tex")
+			print("-------------------------------")
+			print("x train")
+			print_table(perp_train, dnames, dnames, "table-train.tex")
+			print("-------------------------------")
+			print("x dev")
+			print_table(perp_dev, dnames, dnames, "table-dev.tex")
+			print("-------------------------------")
+			print("x test")
+			print_table(perp_test, dnames, dnames, "table-test.tex")
 
+		elif model == 'trigram':
+			print("--------------learning trigram--------------")
+			# trigram
+			dnames = ["brown", "reuters", "gutenberg"]
+			datas = []
+			models = []
+			# Learn the models for each of the domains, and evaluate it
+			for dname in dnames:
+					print("-----------------------")
+					print(dname)
+					data = read_texts("data/corpora.tar.gz", dname)
+					datas.append(data)
+					model = learn_trigram_without_smoothing(data)
+					models.append(model)
+			# compute the perplexity of all pairs
+			n = len(dnames)
+			perp_dev = np.zeros((n,n))
+			perp_test = np.zeros((n,n))
+			perp_train = np.zeros((n,n))
+			for i in xrange(n):
+					for j in xrange(n):
+							perp_dev[i][j] = models[i].perplexity(datas[j].dev)
+							perp_test[i][j] = models[i].perplexity(datas[j].test)
+							perp_train[i][j] = models[i].perplexity(datas[j].train)
 
+			print("-------------------------------")
+			print("x train")
+			print_table(perp_train, dnames, dnames, "table-train.tex")
+			print("-------------------------------")
+			print("x dev")
+			print_table(perp_dev, dnames, dnames, "table-dev.tex")
+			print("-------------------------------")
+			print("x test")
+			print_table(perp_test, dnames, dnames, "table-test.tex")
+		else:
+			print("please select between unigram, trigram, or trigram with smoothing")

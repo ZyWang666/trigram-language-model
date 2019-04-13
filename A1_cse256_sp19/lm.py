@@ -97,7 +97,7 @@ class Trigram(LangModel):
 		self.two_words = dict()
 		self.three_words = dict()
 		self.rare_words = dict()
-
+		
 	def fit_corpus(self, corpus):
 		#check for rare words
 		words_count = dict()
@@ -107,11 +107,12 @@ class Trigram(LangModel):
 					words_count[w] += 1
 				else:
 					words_count[w] = 1
-		print("finish words_count: ", len(words_count))
+
+		#print("finish words_count: ", len(words_count))
 		for w in words_count:
-			if words_count[w] == 1:
+			if words_count[w] <= 2:
 				self.rare_words[w] = 1
-		print("finish rare words: ", len(self.rare_words))
+		#print("finish rare words: ", len(self.rare_words))
 
 		"""Learn the language model for the whole corpus.
 		The corpus consists of a list of sentences."""
@@ -164,11 +165,9 @@ class Trigram(LangModel):
 		numerator = 1.0
 		denumerator = len(self.one_word) + 0.0
 		comb = f_prev + ' ' + s_prev
-		#print("2: ", comb)
 		if comb in self.two_words:
 			denumerator += self.two_words[comb]
 		comb = comb + ' ' + word
-		#print("3: ", comb)
 		if comb in self.three_words:
 			numerator += self.three_words[comb]
 		return log(numerator, 2) - log(denumerator, 2)
@@ -191,4 +190,81 @@ class Trigram(LangModel):
 			else:
 				self.three_words[comb] = 1
 
+
+class TrigramNoSmoothing(LangModel):
+	def __init__(self):
+		self.one_word = dict()
+		self.two_words = dict()
+		self.three_words = dict()
+		
+	def fit_corpus(self, corpus):
+		#check for rare words
+		words_count = dict()
+		"""Learn the language model for the whole corpus.
+		The corpus consists of a list of sentences."""
+		for s in corpus:
+			self.fit_sentence(s)
+		self.norm()
+
+	def fit_sentence(self, sentence):
+		f_prev = '*'
+		s_prev = '*'
+		comb = ''
+		for w in sentence:
+			self.words_count(1,w)
+			comb = f_prev + ' ' + s_prev
+			self.words_count(2,comb)
+			comb = comb + ' ' + w
+			self.words_count(3,comb)
+			f_prev = s_prev
+			s_prev = w
+
+		w = 'END_OF_SENTENCE'
+		self.words_count(1,w)
+		comb = f_prev + ' ' + s_prev
+		self.words_count(2,comb)
+		comb = comb + ' ' + w
+		self.words_count(3,comb)
+		
+	def vocab(self):
+		return self.one_word
+	
+	def cond_logprob(self, word, previous):
+		f_prev = '*'
+		s_prev = '*'
+		if len(previous) == 1:
+			s_prev = previous[0]
+		elif len(previous) >= 2:
+			f_prev = previous[len(previous)-2]
+			s_prev = previous[len(previous)-1]
+		numerator = 0.0
+		denumerator = 0.0
+		comb = f_prev + ' ' + s_prev
+		if comb in self.two_words:
+			denumerator += self.two_words[comb]
+		comb = comb + ' ' + word
+		#print("3: ", comb)
+		if comb in self.three_words:
+			numerator += self.three_words[comb]
+		if numerator == 0.0:
+			return log(0.000001,2)
+		return log(numerator, 2) - log(denumerator, 2)
+	
+
+	def words_count(self, num, comb):
+		if num == 1:
+			if comb in self.one_word:
+				self.one_word[comb] += 1
+			else:
+				self.one_word[comb] = 1
+		elif num == 2:
+			if comb in self.two_words:
+				self.two_words[comb] += 1
+			else:
+				self.two_words[comb] = 1
+		elif num == 3:
+			if comb in self.three_words:
+				self.three_words[comb] += 1
+			else:
+				self.three_words[comb] = 1
 
