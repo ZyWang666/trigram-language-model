@@ -120,8 +120,8 @@ def learn_unigram(data, verbose=True):
 				print("test :", unigram.perplexity(data.test))
 				from generator import Sampler
 				sampler = Sampler(unigram)
-				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence([])))
-				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
+				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence(['a'])))
+				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence(['a'])))
 		return unigram
 
 def learn_trigram(data, verbose=True):
@@ -131,7 +131,7 @@ def learn_trigram(data, verbose=True):
 		some sample sentences from the model.
 		"""
 		from lm import Trigram
-		trigram = Trigram()
+		trigram = Trigram(3)
 		trigram.fit_corpus(data.train)
 		if verbose:
 				print("vocab:", len(trigram.vocab()))
@@ -141,8 +141,8 @@ def learn_trigram(data, verbose=True):
 				print("test :", trigram.perplexity(data.test))
 				from generator import Sampler
 				sampler = Sampler(trigram)
-				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence([])))
-				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
+				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence(['the'])))
+				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence(['the'])))
 		return trigram
 
 def learn_trigram_without_smoothing(data, verbose=True):
@@ -162,8 +162,8 @@ def learn_trigram_without_smoothing(data, verbose=True):
 				print("test :", trigram.perplexity(data.test))
 				from generator import Sampler
 				sampler = Sampler(trigram)
-				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence([])))
-				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence([])))
+				print("sample 1: ", " ".join(str(x) for x in sampler.sample_sentence(['a'])))
+				print("sample 2: ", " ".join(str(x) for x in sampler.sample_sentence(['a'])))
 		return trigram
 
 
@@ -224,8 +224,6 @@ if __name__ == "__main__":
 			print_table(perp_test, dnames, dnames, "table-test.tex")
 
 		elif model == 'trigram with smoothing':
-			print('\n')
-			print('\n')
 			print("--------------learning trigram with smoothing--------------")
 			# trigram
 			dnames = ["brown", "reuters", "gutenberg"]

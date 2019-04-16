@@ -92,12 +92,13 @@ class Unigram(LangModel):
 		return self.model.keys()
 
 class Trigram(LangModel):
-	def __init__(self):
+	def __init__(self, hyper):
 		self.one_word = dict()
 		self.two_words = dict()
 		self.three_words = dict()
 		self.rare_words = dict()
-		
+		self.hyper = hyper
+
 	def fit_corpus(self, corpus):
 		#check for rare words
 		words_count = dict()
@@ -107,18 +108,64 @@ class Trigram(LangModel):
 					words_count[w] += 1
 				else:
 					words_count[w] = 1
-
-		#print("finish words_count: ", len(words_count))
 		for w in words_count:
-			if words_count[w] <= 2:
+			if words_count[w] <= self.hyper:
 				self.rare_words[w] = 1
-		#print("finish rare words: ", len(self.rare_words))
+		freq = float(len(self.rare_words))/len(words_count)
 
 		"""Learn the language model for the whole corpus.
 		The corpus consists of a list of sentences."""
 		for s in corpus:
 			self.fit_sentence(s)
 		self.norm()
+
+	def fit_corpus2(self, corpus, corpus2):
+		#check for rare words
+		words_count = dict()
+		self.por = 10000
+		corpus2 = corpus2[:int(len(corpus2) / 5)]
+
+		for s in corpus:
+			for w in s:
+				if w in words_count:
+					words_count[w] += 1
+				else:
+					words_count[w] = 1
+		for s in corpus2:
+			for w in s:
+				if w in words_count:
+					words_count[w] += 3
+				else:
+					words_count[w] = 3
+		
+		for w in words_count:
+			if words_count[w] <= self.hyper:
+				self.rare_words[w] = 1
+
+		"""Learn the language model for the whole corpus.
+		The corpus consists of a list of sentences."""
+
+		for s in corpus:
+			self.fit_sentence(s)
+
+		for s in corpus2:
+			self.fit_sentence2(s)
+		self.norm()
+
+	def norm(self):
+		import operator
+		max_val = 0
+		index = ''
+		for a in self.three_words:
+			if self.three_words[a] > max_val:
+				max_val = self.three_words[a]
+				index = a
+
+		"""
+		#print("index: ", index, "max val: ", max_val)
+		sorted_x = sorted(self.three_words.items(), key=operator.itemgetter(1))
+		print(sorted_x[len(sorted_x)-100:len(sorted_x)])
+		"""
 
 	def fit_sentence(self, sentence):
 		f_prev = '*'
@@ -141,6 +188,53 @@ class Trigram(LangModel):
 		self.words_count(2,comb)
 		comb = comb + ' ' + w
 		self.words_count(3,comb)
+
+	def fit_sentence2(self, sentence):
+		f_prev = '*'
+		s_prev = '*'
+		comb = ''
+		for w in sentence:
+			if w in self.rare_words:
+				w = 'UNK'
+			self.words_count2(1,w)
+			comb = f_prev + ' ' + s_prev
+			self.words_count2(2,comb)
+			comb = comb + ' ' + w
+			self.words_count2(3,comb)
+			f_prev = s_prev
+			s_prev = w
+
+		w = 'END_OF_SENTENCE'
+		self.words_count(1,w)
+		comb = f_prev + ' ' + s_prev
+		self.words_count(2,comb)
+		comb = comb + ' ' + w
+		self.words_count(3,comb)
+
+	def fit_sentence3(self, sentence):
+		f_prev = '*'
+		s_prev = '*'
+		comb = ''
+		for w in sentence:
+			if w in self.rare_words:
+				w = 'UNK'
+			self.words_count(1,w)
+			if f_prev != '*' and s_prev != '*':
+				comb = f_prev + ' ' + s_prev
+				self.words_count(2,comb)
+				comb = comb + ' ' + w
+				self.words_count(3,comb)
+			f_prev = s_prev
+			s_prev = w
+
+		w = 'END_OF_SENTENCE'
+		self.words_count(1,w)
+		if f_prev != '*' and s_prev != '*':
+			comb = f_prev + ' ' + s_prev
+			self.words_count(2,comb)
+			comb = comb + ' ' + w
+			self.words_count(3,comb)
+
 		
 	def vocab(self):
 		return self.one_word
@@ -190,6 +284,22 @@ class Trigram(LangModel):
 			else:
 				self.three_words[comb] = 1
 
+	def words_count2(self, num, comb):
+		if num == 1:
+			if comb in self.one_word:
+				self.one_word[comb] += self.por
+			else:
+				self.one_word[comb] = self.por
+		elif num == 2:
+			if comb in self.two_words:
+				self.two_words[comb] += self.por
+			else:
+				self.two_words[comb] = self.por
+		elif num == 3:
+			if comb in self.three_words:
+				self.three_words[comb] += self.por
+			else:
+				self.three_words[comb] = self.por
 
 class TrigramNoSmoothing(LangModel):
 	def __init__(self):
